@@ -7,11 +7,17 @@
 class Deck
 {
 private:
-    Card arrCards[52];
+    Card* arrCards[52];
     
 public:
-    void SetUpCards();
+    //default constructor
+    Deck();
+    ~Deck(); //destructor
     
+    void SetUpCards();
+    void PrintAll();
+    int ShuffleCards();
+    int DealCards();
 };
 
 #endif /* DECK_H */
