@@ -2,6 +2,7 @@
 #define CARD_H
 
 #include "CardTypes.h"
+#include "Player.h"
 
 class Card
 {
@@ -11,6 +12,9 @@ public:
     int value;
     int playOrderIndex;
     
+    Player playerInfo;
+    
+    //functions
     void PrintSuit();
     bool CanPlay(const &, const &);
 };
