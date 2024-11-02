@@ -2,6 +2,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <random>
+#include <list>
+#include <algorithm>
 
 using std::cout;
 //constructor that calls card set up automatically
@@ -49,16 +51,75 @@ void Deck::SetUpCards()
     }
 }
 
-void Deck::PrintAll()
+//void Deck::PrintAll()
+//{
+//    for (int i = 0; i < 52; i++)  //loop through the deck
+//    {
+//        arrCards[i]->PrintSuit();
+//        cout << " ";  //separate each card suit by a space
+//    }
+//    cout << std::endl;
+//}
+
+void Deck::SetPlayerHand()
 {
-    for (int i = 0; i < 52; i++)  //loop through the deck
+    int min = 1,
+        max = 52;
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib(min, max);
+    
+    //going to use a linked container to 
+    std::list<int> playerHand;
+    
+    for (int i = 0; i < 13; i++)
     {
-        arrCards[i]->PrintSuit();
-        cout << " ";  //separate each card suit by a space
+        int randomValue;
+        
+        //runs this loop if the value given was same as another value in hand
+        do 
+        {
+            randomValue = distrib(gen);
+        } while (find(playerHand.begin(), playerHand.end(), 
+                 randomValue) != playerHand.end());
+        
+        playerHand.push_front(randomValue);
+    }
+    
+    playerHand.sort();
+    
+    cout << "Player Hand: " << std::endl;
+    PrintHand(playerHand);
+    
+    if (find(playerHand.begin(), playerHand.end(), 1) != playerHand.end())
+    {
+        cout << "Starting Value Found!" << std::endl;
+    }
+    else
+    {
+        cout << "Starting Value Not Found!" << std::endl;
+    }
+}
+
+//uses iterator to print out the player current hand
+void Deck::PrintHand(std::list<int> hand)
+{
+    std::list<int>::iterator it;
+    
+    for (it = hand.begin(); it != hand.end(); it++)
+    {
+        arrCards[*it]->PrintSuit();
+        cout << " ";
+    }
+    cout << std::endl;
+    
+    for (it = hand.begin(); it != hand.end(); it++)
+    {
+        cout << *it << " ";
     }
     cout << std::endl;
 }
-
 
 int Deck::DealCards()
 {
@@ -84,7 +145,7 @@ void Deck::Menu(int ch)
     switch (ch)
     {
         case 1:
-            cout << " ";
+            SetPlayerHand();
             break;
         case 2:
             cout << " ";
@@ -100,7 +161,6 @@ void Deck::Menu(int ch)
             break;
     }
 }
-
 
 //using cout for everytime there is a new line for readability purposes in the code
 void Deck::Instructions()
