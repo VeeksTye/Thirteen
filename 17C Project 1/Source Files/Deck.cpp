@@ -6,10 +6,13 @@
 #include <algorithm>
 
 using std::cout;
+
 //constructor that calls card set up automatically
 Deck::Deck()
 {
     SetUpCards();
+    SetPlayerHand();
+    InitializeTurnOrder(0);
 }
 
 //destructor to free allocated memory
@@ -24,19 +27,23 @@ Deck::~Deck()
 void Deck::SetUpCards()
 {
     int index = 0; //tracks the position in the deck array
-
-    //loop through suits from SPADES to HEARTS
-    for (int col = (int)Suits::SPADES; col <= (int)Suits::HEARTS; col++)
+    
+    //issue fix: in the For-Loop, cards index being declared with spades and run through all 13 different card types, meaning
+    //that values between 1-13 where spades 3 - spades 2. We obviously don't want this as it makes checking the value
+    //much harder in the game compared to seeing if the index of the value is greater than the index of the previous value
+    
+    //loop through card names from THREE to TWO
+    for (int rows = (int)Rank::THREE; rows <= (int)Rank::TWO; rows++)
     {
-        //loop through card names from THREE to TWO
-        for (int rows = (int)CardNames::THREE; rows <= (int)CardNames::TWO; rows++)
+        //loop through suits from SPADES to HEARTS
+        for (int col = (int)Suits::SPADES; col <= (int)Suits::HEARTS; col++)
         {
             //allocates memory for new Card object
             Card* c = new Card; 
             
             //setting suit and card name depending on row and column
             c->suit = (Suits)col;
-            c->name = (CardNames)rows;
+            c->name = (Rank)rows;
             
             //for card assigning, starting at 3 of spades
             c->value = (int)c->name;
@@ -51,118 +58,295 @@ void Deck::SetUpCards()
     }
 }
 
-//void Deck::PrintAll()
-//{
-//    for (int i = 0; i < 52; i++)  //loop through the deck
-//    {
-//        arrCards[i]->PrintSuit();
-//        cout << " ";  //separate each card suit by a space
-//    }
-//    cout << std::endl;
-//}
-
 void Deck::SetPlayerHand()
 {
-    int min = 1,
-        max = 52;
+    int min = 0,
+        max = 51;
+    int startingPlayer = -1;
     
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> distrib(min, max);
     
-    //going to use a linked container to 
-    std::list<int> playerHand;
+    //going to use a linked container to keep track of a players hand
+    std::list<int> deck;
+    deck.clear();
     
-    for (int i = 0; i < 13; i++)
+    //loops 52 times to get random values
+    for (int i = 0; i < 52; i++)
     {
         int randomValue;
-        
+
         //runs this loop if the value given was same as another value in hand
         do 
         {
             randomValue = distrib(gen);
-        } while (find(playerHand.begin(), playerHand.end(), 
-                 randomValue) != playerHand.end());
+        } while (find(deck.begin(), deck.end(), 
+                randomValue) != deck.end());
+
+        deck.push_front(randomValue);
+    }
+    
+    for (int i = 1; i < 5; i++)
+    {
+        hand[i-1].clear();
+        hand[i-1].splice(hand[i-1].begin(), deck, deck.begin(), std::next(deck.begin(), 13));
+        hand[i-1].sort();
         
-        playerHand.push_front(randomValue);
+//        cout << "Player " << i << " Hand:\n";
+//        PrintHand(hand[i-1]);
+        
+        //uses the find function in the library "list" in order to find 0 which is the starting index of the initial value
+        if (find(hand[i-1].begin(), hand[i-1].end(), 0) != hand[i-1].end())
+        {
+            startingPlayer = i - 1;
+        }
     }
     
-    playerHand.sort();
-    
-    cout << "Player Hand: " << std::endl;
-    PrintHand(playerHand);
-    
-    if (find(playerHand.begin(), playerHand.end(), 1) != playerHand.end())
-    {
-        cout << "Starting Value Found!" << std::endl;
-    }
-    else
-    {
-        cout << "Starting Value Not Found!" << std::endl;
-    }
+    InitializeTurnOrder(startingPlayer);
 }
 
 //uses iterator to print out the player current hand
 void Deck::PrintHand(std::list<int> hand)
 {
-    std::list<int>::iterator it;
+    int i = 1;
+    cout << " ";
     
-    for (it = hand.begin(); it != hand.end(); it++)
+    //loop iterator for as long as the hand doesn't end
+    for (std::list<int>::iterator it = hand.begin(); it != hand.end(); it++)
     {
+        //outputs the iterator value for debugging purposes
+        //cout << *it << " ";
+        
+        cout << i << ". ";
         arrCards[*it]->PrintSuit();
         cout << " ";
+        i++;
     }
-    cout << std::endl;
-    
-    for (it = hand.begin(); it != hand.end(); it++)
-    {
-        cout << *it << " ";
-    }
+
     cout << std::endl;
 }
 
-int Deck::DealCards()
+void Deck::PrintRound(int cardIndex)
 {
-    return 0;
+    cout << "Game: ";
+    arrCards[cardIndex]->PrintSuit();
+    cout << " ";
 }
 
-int Deck::randomfunc(int j) 
-{ 
-    return rand() % j; 
-} 
-
-void Deck::Menu(int ch)
+void Deck::InitializeTurnOrder(int startingPlayer)
 {
-    cout << "Welcome to Tiến lên (Thirteen)! \n";
-    cout << "If this is your first time playing, I recommend setting up a profile! \n\n";
-    cout << "1. Play Game \n";
-    cout << "2. Make/View Profile \n";
-    cout << "3. How to play/instructions \n";
-    cout << "4. Quit \n";  
-    
-    std::cin >> ch;
-    
-    switch (ch)
+    while (!turn.empty())
     {
-        case 1:
-            SetPlayerHand();
-            break;
-        case 2:
-            cout << " ";
-            break;
-        case 3:
-            Instructions();
-            break;
-        case 4:
-            cout << " ";
-            break;
-        default:
-            cout << "INVALID INPUT\n";
-            break;
+        turn.pop();
+    }
+    
+    for (int i = 0; i < 4; i++) 
+    {
+        int playerIndex = (startingPlayer + i) % 4;
+        turn.push(playerIndex);
     }
 }
 
-//using cout for everytime there is a new line for readability purposes in the code
+void Deck::GameLoop()
+{
+    //initializes starting variable when a new round starts
+    bool newRound = true;
+    
+    while (!turn.empty()) 
+    {
+        if (newRound) 
+        {
+            //resets the players at the start of every newRound and disables new round after
+            resetActivePlayers();
+            newRound = false;
+        }
+        
+        //gets the player that's at the front of the queue
+        currentPlayer = turn.front();
+        
+        //remove the player front the queue
+        turn.pop(); 
+        
+        //skips the turn if the player already passed for the round
+        if (!activePlayers[currentPlayer]) 
+        {
+            continue;
+        }
+        
+        cout << "Player " << currentPlayer + 1 << "'s turn" << std::endl;
+
+        //process the player's turn, returns a true of false to see if they passed
+        bool passed = PlayerTurn(currentPlayer);
+
+        if (passed) 
+        {
+            cout << "Player " << currentPlayer + 1 << " passes their turn." << std::endl;
+            activePlayers[currentPlayer] = false;
+        } 
+        else 
+        {
+            //if the player doesn't pass, they go to the back of the queue for the next round
+            turn.push(currentPlayer);
+        }
+        
+        for (int i = 0; i <= 3; i++)
+        {
+            if (!activePlayers[i]) 
+            {
+                newRound = true;  //all players passed, start a new round
+            }
+            else
+            {
+                newRound = false;
+            }
+        }
+    }
+
+}
+
+bool Deck::PlayerTurn(int playerIndex)
+{
+    //checks if the player skipped their turn
+    if (!activePlayers[playerIndex]) 
+    {
+        return false;
+    }
+    
+    // Print the player's hand
+    cout << "Player " << playerIndex + 1 << "'s hand: \n";
+    PrintHand(hand[playerIndex]);
+
+    //if the player has no cards left they pass
+    if (hand[playerIndex].empty()) 
+    {
+        cout << "You Win!" << std::endl;
+        return true;
+    }
+
+    cout << "Choose an action (1 for play, 2 for pass): ";
+    std::cin >> choice;
+
+    if (choice == 1) 
+    {
+        //let the player choose a card to play
+        int cardChoice;
+        cout << "Choose a valid card to play (enter card index from hand): ";
+        std::cin >> cardChoice;
+
+        //checks to see if the card index is valid
+        if (cardChoice >= 0 && cardChoice < hand[playerIndex].size()) 
+        {
+            //assume cardChoice is the card played
+            auto it = hand[playerIndex].begin();
+            std::advance(it, cardChoice);
+
+            int selectedCard = *it; // Get the card to play
+            if (isValidPlay(selectedCard, hand[playerIndex])) 
+            {
+                //removes card from player hand
+                hand[playerIndex].erase(it);
+                std::cout << "Player " << playerIndex + 1 << " plays card ";
+                PrintRound(selectedCard);
+                cout << std::endl << std::endl;
+            } 
+            else 
+            {
+                cout << "Card " << selectedCard << " is not a valid play. Try again.\n" << std::endl;
+                return PlayerTurn(playerIndex);
+            }
+        } 
+        else 
+        {
+            cout << "Invalid card choice. Try again." << std::endl;
+            return PlayerTurn(playerIndex);
+        }
+    } 
+    //if the player passes, they are gone for the rest of the round
+    else if (choice == 2) 
+    {
+        cout << "Player " << (playerIndex + 1) << " passes their turn.\n\n";
+        return activePlayers[playerIndex] = false;
+    } 
+    else 
+    {
+        cout << "Invalid choice. Please choose again.\n" << std::endl;
+        return PlayerTurn(playerIndex);
+    }
+    return true;
+}
+
+bool Deck::isValidPlay(int card, std::list<int> hand) 
+{
+    //example logic: Check if the card exists in the player's hand
+    for (int currentCard : hand) 
+    {
+        //checks to see if the card is the card in the deck
+        if (currentCard == card) 
+        {
+            //checks to see if the card chosen is greater than the card inputted
+            if (currentCard > hand.front())
+            {
+                return true;
+            }
+            //if the card that is inputted is not greater, returns a false value
+            else 
+            {
+                return false;
+            }
+        }
+    }
+    //will return false if the card in not in the player hand
+    return false; 
+}
+
+void Deck::resetActivePlayers()
+{
+    for (int i = 0; i < 4; i++)
+    {
+        activePlayers[i] = true;
+    }
+}
+    
+void Deck::Menu(int choice, int input)
+{
+    std::list<int> hand;
+    
+    do
+    {
+        cout << "Welcome to Tiến lên (Thirteen)! \n";
+        cout << "If this is your first time playing, I recommend setting up a profile! \n\n";
+        cout << "1. Play Game \n";
+        cout << "2. Make/View Profile \n";
+        cout << "3. How to play/instructions \n";
+        cout << "4. Quit \n";  
+    
+        std::cin >> choice;
+
+        switch (choice)
+        {
+            case 1:
+                GameLoop();
+                break;
+            case 2:
+                cout << "Profile setup/viewing selected.\n";
+                cout << "Sorry this part is not yet properly set up\n\n";
+                break;
+            case 3:
+                Instructions();
+                break;
+            case 4:
+                cout << "Exiting Game, Come back soon!\n";
+                break;
+            default:
+                cout << "\nINVALID INPUT\n";
+                cout << "Choose an input between 1-4: ";
+                break;
+        }
+    }while (choice != 4); 
+}
+
+//using cout for every time there is a new line for readability purposes in the code
 void Deck::Instructions()
 {
     cout << "Setup: \n"
