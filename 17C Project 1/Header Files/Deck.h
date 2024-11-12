@@ -44,7 +44,7 @@ public:
     
     bool isValidPlay(int, std::list<int>);
     bool PlayerTurn(int playerIndex);
-    void resetActivePlayers();players
+    void resetActivePlayers();
     int DealCards();
 };
 
